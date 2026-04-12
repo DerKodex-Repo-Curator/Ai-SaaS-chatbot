@@ -66,7 +66,7 @@ const ImagePage = () => {
         bgcolor="bg-pink-500/10"
       />
       <div className="grid gap-6 px-4 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
-        <Card className="border-pink-100/80 shadow-sm">
+        <Card className="border-pink-100/80 shadow-sm dark:border-border">
           <CardHeader className="gap-3">
             <CardTitle className="flex items-center gap-2 text-xl">
               <WandSparkles className="h-5 w-5 text-pink-500" />
@@ -101,8 +101,8 @@ const ImagePage = () => {
                       <FormControl>
                         <textarea
                           className={cn(
-                            "min-h-40 w-full rounded-xl border border-input bg-transparent px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow]",
-                            "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                            "min-h-40 w-full rounded-xl border border-input bg-transparent px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
+                            "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
                             "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
                           )}
                           disabled={isLoading}
@@ -119,7 +119,7 @@ const ImagePage = () => {
                 />
                 <Button
                   type="submit"
-                  className="w-full bg-pink-500 text-white hover:bg-pink-500/90 lg:w-auto"
+                  className="w-full bg-pink-500 text-white hover:bg-pink-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb] lg:w-auto"
                   disabled={isLoading}
                 >
                   Prepare Prompt
@@ -130,7 +130,7 @@ const ImagePage = () => {
         </Card>
 
         <div className="space-y-6">
-          <Card className="overflow-hidden border-pink-100/80 shadow-sm">
+          <Card className="overflow-hidden border-pink-100/80 shadow-sm dark:border-border">
             <CardHeader className="gap-3">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="h-5 w-5 text-pink-500" />
@@ -141,23 +141,23 @@ const ImagePage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="relative overflow-hidden rounded-2xl border border-dashed border-pink-200 bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-6">
+              <div className="relative overflow-hidden rounded-2xl border border-dashed border-pink-200 bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-6 dark:border-border dark:bg-[linear-gradient(180deg,#0f172a_0%,#1e293b_100%)]">
                 <div className="absolute -left-10 top-10 h-24 w-24 rounded-full bg-pink-200/60 blur-2xl" />
                 <div className="absolute bottom-0 right-0 h-28 w-28 rounded-full bg-orange-200/50 blur-2xl" />
-                <div className="relative flex aspect-square flex-col items-center justify-center rounded-xl border border-white/70 bg-white/70 p-8 text-center backdrop-blur">
+                <div className="relative flex aspect-square flex-col items-center justify-center rounded-xl border border-white/70 bg-white/70 p-8 text-center backdrop-blur dark:border-border dark:bg-card/90">
                   <div className="mb-4 rounded-full bg-pink-500/10 p-4">
                     <ImageIcon className="h-8 w-8 text-pink-500" />
                   </div>
-                  <p className="text-lg font-semibold text-slate-900">
+                  <p className="text-lg font-semibold text-slate-900 dark:text-foreground">
                     {latestPrompt ? "Prompt Ready" : "No Image Prompt Yet"}
                   </p>
-                  <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600 dark:text-muted-foreground">
                     {latestPrompt
                       ? "Your prompt has been prepared. Plug in an image generation API here to replace this preview card with real generated artwork."
                       : "Submit a prompt to stage it here. This page is set up for your future image generation backend."}
                   </p>
                   {latestPrompt ? (
-                    <div className="mt-5 w-full rounded-xl border border-pink-100 bg-white px-4 py-3 text-left text-sm text-slate-700">
+                    <div className="mt-5 w-full rounded-xl border border-pink-100 bg-white px-4 py-3 text-left text-sm text-slate-700 dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0]">
                       {latestPrompt}
                     </div>
                   ) : null}
@@ -166,7 +166,7 @@ const ImagePage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-pink-100/80 shadow-sm">
+          <Card className="border-pink-100/80 shadow-sm dark:border-border">
             <CardHeader className="gap-3">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Palette className="h-5 w-5 text-pink-500" />
@@ -178,7 +178,7 @@ const ImagePage = () => {
             </CardHeader>
             <CardContent>
               {promptHistory.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-pink-200 px-4 py-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-xl border border-dashed border-pink-200 px-4 py-8 text-center text-sm text-muted-foreground dark:border-border dark:bg-card/60">
                   Your prepared prompts will appear here.
                 </div>
               ) : (
@@ -186,7 +186,7 @@ const ImagePage = () => {
                   {promptHistory.map((prompt, index) => (
                     <div
                       key={`${prompt}-${index}`}
-                      className="rounded-xl border border-pink-100 bg-pink-50/40 px-4 py-3 text-sm text-slate-700"
+                      className="rounded-xl border border-pink-100 bg-pink-50/40 px-4 py-3 text-sm text-slate-700 dark:border-border dark:bg-card dark:text-[#e2e8f0]"
                     >
                       {prompt}
                     </div>

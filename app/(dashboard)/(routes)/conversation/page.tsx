@@ -398,7 +398,7 @@ const ConversationPage = () => {
         bgcolor="bg-violet-500/10"
       />
       <div className="grid gap-6 px-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8">
-        <Card className="border-violet-100/80 shadow-sm">
+        <Card className="border-violet-100/80 shadow-sm dark:border-border">
           <CardHeader className="gap-3">
             <CardTitle className="flex items-center justify-between gap-3 text-xl">
               <span className="flex items-center gap-2">
@@ -429,10 +429,10 @@ const ConversationPage = () => {
                   key={chat.id}
                   className={cn(
                     "rounded-2xl border px-4 py-3 transition",
-                    "hover:border-violet-300 hover:bg-violet-50/50",
+                    "hover:border-violet-300 hover:bg-violet-50/50 dark:hover:border-[#3b82f6] dark:hover:bg-card",
                     isActive
-                      ? "border-violet-300 bg-violet-50 shadow-sm"
-                      : "border-slate-200 bg-white",
+                      ? "border-violet-300 bg-violet-50 shadow-sm dark:border-[#3b82f6] dark:bg-card dark:shadow-none"
+                      : "border-slate-200 bg-white dark:border-border dark:bg-card",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -446,7 +446,7 @@ const ConversationPage = () => {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-foreground">
                             {chat.title}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -461,7 +461,7 @@ const ConversationPage = () => {
                           {formatActivityTime(chat.updatedAt)}
                         </p>
                       </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-muted-foreground">
                         {getChatPreview(chat)}
                       </p>
                     </button>
@@ -478,7 +478,7 @@ const ConversationPage = () => {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                       {isPending ? (
-                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-violet-600">
+                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-violet-600 dark:text-blue-300">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Active
                         </span>
@@ -492,7 +492,7 @@ const ConversationPage = () => {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-violet-100/80 shadow-sm">
+          <Card className="border-violet-100/80 shadow-sm dark:border-border">
             <CardHeader className="gap-3 border-b">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-xl">
@@ -519,7 +519,7 @@ const ConversationPage = () => {
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="grid grid-cols-12 gap-2 rounded-lg border p-4 px-3 focus-within:shadow-sm md:px-6"
+                  className="grid grid-cols-12 gap-2 rounded-lg border p-4 px-3 focus-within:shadow-sm dark:bg-card/70 md:px-6"
                 >
                   <FormField
                     name="prompt"
@@ -561,8 +561,8 @@ const ConversationPage = () => {
                       className={cn(
                         "rounded-2xl border p-4",
                         message.role === "user"
-                          ? "border-violet-200 bg-violet-50/70"
-                          : "border-slate-200 bg-white",
+                          ? "border-violet-200 bg-violet-50/70 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
+                          : "border-slate-200 bg-white dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0]",
                       )}
                     >
                       <div className="mb-3 flex items-center justify-between gap-3">
@@ -574,7 +574,7 @@ const ConversationPage = () => {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-muted-foreground hover:text-violet-600"
+                            className="text-muted-foreground hover:text-violet-600 dark:hover:text-blue-200"
                             onClick={() =>
                               handleStartEditing(activeChat.id, message)
                             }
@@ -594,8 +594,8 @@ const ConversationPage = () => {
                               setEditingValue(event.target.value)
                             }
                             className={cn(
-                              "min-h-28 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow]",
-                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                              "min-h-28 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
+                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
                             )}
                             disabled={isLoading}
                           />
@@ -622,7 +622,7 @@ const ConversationPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                        <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-[#e2e8f0]">
                           {message.content}
                         </p>
                       )}
@@ -630,7 +630,7 @@ const ConversationPage = () => {
                   ))}
 
                   {pendingChatId === activeChat.id ? (
-                    <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm text-violet-700">
+                    <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm text-violet-700 dark:border-border dark:bg-card dark:text-foreground">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Waiting for Qwen&apos;s response...
@@ -639,7 +639,7 @@ const ConversationPage = () => {
                   ) : null}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/30 px-6 py-12 text-center text-sm text-muted-foreground">
+                <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/30 px-6 py-12 text-center text-sm text-muted-foreground dark:border-border dark:bg-card/70">
                   Start a new chat or pick an existing one to continue the conversation.
                 </div>
               )}

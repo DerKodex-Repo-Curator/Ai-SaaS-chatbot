@@ -333,7 +333,7 @@ const MessageContent = ({
           return (
             <div
               key={`${message.id}-text-${index}`}
-              className="whitespace-pre-wrap text-sm leading-7 text-slate-700"
+              className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-[#e2e8f0]"
             >
               {segment.content}
             </div>
@@ -685,7 +685,7 @@ const CodePage = () => {
         bgcolor="bg-emerald-500/10"
       />
       <div className="grid gap-6 px-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:px-8">
-        <Card className="border-emerald-100/80 shadow-sm">
+        <Card className="border-emerald-100/80 shadow-sm dark:border-border">
           <CardHeader className="gap-3 border-b">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -718,10 +718,10 @@ const CodePage = () => {
                   key={chat.id}
                   className={cn(
                     "rounded-2xl border px-4 py-3 transition",
-                    "hover:border-emerald-300 hover:bg-emerald-50/60",
+                    "hover:border-emerald-300 hover:bg-emerald-50/60 dark:hover:border-[#3b82f6] dark:hover:bg-card",
                     isActive
-                      ? "border-emerald-300 bg-emerald-50 shadow-sm"
-                      : "border-slate-200 bg-white",
+                      ? "border-emerald-300 bg-emerald-50 shadow-sm dark:border-[#3b82f6] dark:bg-card dark:shadow-none"
+                      : "border-slate-200 bg-white dark:border-border dark:bg-card",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -735,7 +735,7 @@ const CodePage = () => {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-foreground">
                             {chat.title}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -750,7 +750,7 @@ const CodePage = () => {
                           {formatHistoryTimestamp(chat.updatedAt)}
                         </p>
                       </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-muted-foreground">
                         {getChatPreview(chat)}
                       </p>
                     </button>
@@ -768,7 +768,7 @@ const CodePage = () => {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                       {isPending ? (
-                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-600">
+                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-blue-300">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Active
                         </span>
@@ -781,7 +781,7 @@ const CodePage = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-100/80 shadow-sm">
+        <Card className="border-emerald-100/80 shadow-sm dark:border-border">
           <CardHeader className="gap-3 border-b">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -794,7 +794,7 @@ const CodePage = () => {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-border dark:bg-card dark:text-muted-foreground">
                   Saved locally
                 </span>
                 {activeChat ? (
@@ -813,7 +813,7 @@ const CodePage = () => {
             </div>
           </CardHeader>
           <CardContent className="flex min-h-[68vh] flex-col gap-4 pt-6">
-            <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 p-4 sm:p-5">
+            <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 p-4 dark:border-border dark:bg-[linear-gradient(180deg,#0f172a_0%,#0f172a_60%,#1e293b_100%)] sm:p-5">
               {activeChat?.messages.length ? (
                 <div className="space-y-4">
                   {activeChat.messages.map((message) => (
@@ -822,8 +822,8 @@ const CodePage = () => {
                       className={cn(
                         "max-w-4xl rounded-2xl border p-4",
                         message.role === "user"
-                          ? "ml-auto border-emerald-200 bg-emerald-50/80"
-                          : "mr-auto border-slate-200 bg-white shadow-sm",
+                          ? "ml-auto border-emerald-200 bg-emerald-50/80 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
+                          : "mr-auto border-slate-200 bg-white shadow-sm dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0] dark:shadow-none",
                       )}
                     >
                       <div className="mb-3 flex items-center justify-between gap-3">
@@ -839,7 +839,7 @@ const CodePage = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="text-muted-foreground hover:text-emerald-600"
+                              className="text-muted-foreground hover:text-emerald-600 dark:hover:text-blue-200"
                               onClick={() =>
                                 handleStartEditing(activeChat.id, message)
                               }
@@ -860,8 +860,8 @@ const CodePage = () => {
                               setEditingValue(event.target.value)
                             }
                             className={cn(
-                              "min-h-32 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow]",
-                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                              "min-h-32 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
+                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
                             )}
                             disabled={isLoading}
                           />
@@ -869,7 +869,7 @@ const CodePage = () => {
                             <Button
                               type="button"
                               size="sm"
-                              className="bg-emerald-500 text-white hover:bg-emerald-500/90"
+                              className="bg-emerald-500 text-white hover:bg-emerald-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
                               onClick={() => handleSaveEdit(message.id)}
                               disabled={isLoading || !editingValue.trim()}
                             >
@@ -899,7 +899,7 @@ const CodePage = () => {
                   ))}
 
                   {pendingChatId === activeChat.id ? (
-                    <div className="mr-auto max-w-2xl rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-700">
+                    <div className="mr-auto max-w-2xl rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-700 dark:border-border dark:bg-card dark:text-foreground">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Generating code response...
@@ -908,14 +908,14 @@ const CodePage = () => {
                   ) : null}
                 </div>
               ) : (
-                <div className="flex h-full min-h-[340px] flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/80 px-6 text-center">
+                <div className="flex h-full min-h-[340px] flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/80 px-6 text-center dark:border-border dark:bg-card">
                   <div className="mb-4 rounded-full bg-emerald-500/10 p-4">
                     <Code className="h-8 w-8 text-emerald-500" />
                   </div>
-                  <p className="text-lg font-semibold text-slate-900">
+                  <p className="text-lg font-semibold text-slate-900 dark:text-foreground">
                     Start a coding conversation
                   </p>
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-muted-foreground">
                     Ask for code generation, debugging help, refactors, explanations,
                     architecture ideas, or full component builds. Older chats stay saved
                     and the most recent activity automatically moves to the top.
@@ -928,7 +928,7 @@ const CodePage = () => {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm dark:border-border dark:bg-card"
               >
                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                   <FormField
@@ -952,7 +952,7 @@ const CodePage = () => {
                   />
                   <Button
                     type="submit"
-                    className="w-full bg-emerald-500 text-white hover:bg-emerald-500/90 lg:w-auto"
+                    className="w-full bg-emerald-500 text-white hover:bg-emerald-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb] lg:w-auto"
                     disabled={isLoading}
                   >
                     {isLoading ? (
