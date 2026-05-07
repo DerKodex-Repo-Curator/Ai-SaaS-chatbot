@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { MongoAuthForm } from "@/components/mongo-auth-form";
 
-export default function LoginAliasPage() {
-  redirect("/sign-in");
+export default function LoginPage() {
+  return <MongoAuthForm mode="login" />;
 }

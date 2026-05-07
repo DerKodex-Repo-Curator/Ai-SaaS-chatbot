@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 type CodeMessage = {
@@ -42,14 +41,8 @@ const isCodeMessageArray = (value: unknown): value is CodeMessage[] => {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-
     const body = await req.json();
     const { messages } = body;
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
 
     if (!isCodeMessageArray(messages) || messages.length === 0) {
       return new NextResponse("Invalid messages", { status: 400 });

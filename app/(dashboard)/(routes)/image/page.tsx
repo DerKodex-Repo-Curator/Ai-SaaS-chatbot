@@ -1,10 +1,20 @@
 "use client";
 
+import axios from "axios";
+import Image from "next/image";
 import * as z from "zod";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ImageIcon, Palette, Sparkles, WandSparkles } from "lucide-react";
+import {
+  AlertCircle,
+  Download,
+  ImageIcon,
+  Loader2,
+  Palette,
+  Sparkles,
+  WandSparkles,
+} from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
@@ -28,6 +38,10 @@ import { cn } from "@/lib/utils";
 
 import { formSchema } from "./constants";
 
+type ImageApiResponse = {
+  imageUrl: string;
+};
+
 const promptSuggestions = [
   "A neon-lit cyberpunk street in the rain",
   "A cozy reading nook with warm sunlight and plants",
@@ -37,6 +51,8 @@ const promptSuggestions = [
 
 const ImagePage = () => {
   const [latestPrompt, setLatestPrompt] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
+  const [generationError, setGenerationError] = useState("");
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,16 +67,38 @@ const ImagePage = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const prompt = values.prompt.trim();
 
-    setLatestPrompt(prompt);
-    setPromptHistory((current) => [prompt, ...current.filter((item) => item !== prompt)].slice(0, 4));
-    form.reset();
+    setGenerationError("");
+    setGeneratedImageUrl("");
+
+    try {
+      const response = await axios.post<ImageApiResponse>("/api/image", {
+        prompt,
+      });
+
+      setLatestPrompt(prompt);
+      setGeneratedImageUrl(response.data.imageUrl);
+      setPromptHistory((current) =>
+        [prompt, ...current.filter((item) => item !== prompt)].slice(0, 4),
+      );
+      form.reset();
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data || error.message
+        : "Something went wrong while generating your image.";
+
+      setGenerationError(
+        typeof message === "string"
+          ? message
+          : "Something went wrong while generating your image.",
+      );
+    }
   };
 
   return (
     <div>
       <Heading
         title="Image Generation"
-        description="Write a prompt and prepare your image generation workspace."
+        description="Write a prompt and generate a new image."
         icon={ImageIcon}
         iconColor="text-pink-500"
         bgcolor="bg-pink-500/10"
@@ -111,7 +149,7 @@ const ImagePage = () => {
                         />
                       </FormControl>
                       <FormDescription>
-                        The page is ready now. Real image output can be plugged in once you connect an image model or API.
+                        Add enough visual detail for the model to understand the subject, style, and mood.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -122,10 +160,24 @@ const ImagePage = () => {
                   className="w-full bg-pink-500 text-white hover:bg-pink-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb] lg:w-auto"
                   disabled={isLoading}
                 >
-                  Prepare Prompt
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating
+                    </>
+                  ) : (
+                    "Generate Image"
+                  )}
                 </Button>
               </form>
             </Form>
+
+            {generationError ? (
+              <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{generationError}</p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -134,10 +186,10 @@ const ImagePage = () => {
             <CardHeader className="gap-3">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="h-5 w-5 text-pink-500" />
-                Preview Area
+                Generated Image
               </CardTitle>
               <CardDescription>
-                This is the result section your image generator will fill once the backend is wired.
+                Your latest image appears here after generation finishes.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -145,22 +197,56 @@ const ImagePage = () => {
                 <div className="absolute -left-10 top-10 h-24 w-24 rounded-full bg-pink-200/60 blur-2xl" />
                 <div className="absolute bottom-0 right-0 h-28 w-28 rounded-full bg-orange-200/50 blur-2xl" />
                 <div className="relative flex aspect-square flex-col items-center justify-center rounded-xl border border-white/70 bg-white/70 p-8 text-center backdrop-blur dark:border-border dark:bg-card/90">
-                  <div className="mb-4 rounded-full bg-pink-500/10 p-4">
-                    <ImageIcon className="h-8 w-8 text-pink-500" />
-                  </div>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-foreground">
-                    {latestPrompt ? "Prompt Ready" : "No Image Prompt Yet"}
-                  </p>
-                  <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600 dark:text-muted-foreground">
-                    {latestPrompt
-                      ? "Your prompt has been prepared. Plug in an image generation API here to replace this preview card with real generated artwork."
-                      : "Submit a prompt to stage it here. This page is set up for your future image generation backend."}
-                  </p>
-                  {latestPrompt ? (
-                    <div className="mt-5 w-full rounded-xl border border-pink-100 bg-white px-4 py-3 text-left text-sm text-slate-700 dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0]">
-                      {latestPrompt}
-                    </div>
-                  ) : null}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mb-4 h-8 w-8 animate-spin text-pink-500" />
+                      <p className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                        Creating Image
+                      </p>
+                      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600 dark:text-muted-foreground">
+                        This can take a little while for image models.
+                      </p>
+                    </>
+                  ) : generatedImageUrl ? (
+                    <>
+                      <Image
+                        src={generatedImageUrl}
+                        alt={latestPrompt}
+                        fill
+                        unoptimized
+                        sizes="(min-width: 1024px) 40vw, 100vw"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-black/60 p-4 text-left text-white backdrop-blur">
+                        <p className="line-clamp-2 text-sm leading-5">
+                          {latestPrompt}
+                        </p>
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="secondary"
+                          className="mt-3"
+                        >
+                          <a href={generatedImageUrl} download="genius-ai-image.png">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </a>
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 rounded-full bg-pink-500/10 p-4">
+                        <ImageIcon className="h-8 w-8 text-pink-500" />
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                        No Image Yet
+                      </p>
+                      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600 dark:text-muted-foreground">
+                        Submit a prompt to generate artwork here.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>

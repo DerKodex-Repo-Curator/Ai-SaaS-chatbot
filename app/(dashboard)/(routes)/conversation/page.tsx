@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import * as z from "zod";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Check,
@@ -26,6 +26,12 @@ import {
 } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { loadSessionScope, saveSessionScope } from "@/lib/session/client";
+import type {
+  SessionChat,
+  SessionChatMessage,
+  SessionScope,
+} from "@/lib/session/types";
 import { cn } from "@/lib/utils";
 
 import { formSchema } from "./constants";
@@ -35,26 +41,15 @@ type ConversationApiMessage = {
   content: string;
 };
 
-type ConversationMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: number;
-};
-
-type ConversationChat = {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  messages: ConversationMessage[];
-};
+type ConversationMessage = SessionChatMessage;
+type ConversationChat = SessionChat;
 
 type EditingState = {
   chatId: string;
   messageId: string;
 };
 
+const SESSION_SCOPE: SessionScope = "conversation";
 const DEFAULT_CHAT_TITLE = "New chat";
 const INITIAL_CHAT_ID = "chat-initial";
 
@@ -168,10 +163,34 @@ const getNextActiveChatId = (
   return [...remainingChats].sort(sortChatsByLatestActivity)[0]?.id ?? null;
 };
 
+const getDisplayedMessages = <T extends { role: "user" | "assistant" }>(
+  messages: T[],
+) => {
+  const messageGroups: T[][] = [];
+
+  messages.forEach((message) => {
+    const latestGroup = messageGroups.at(-1);
+
+    if (
+      message.role === "user" ||
+      !latestGroup ||
+      latestGroup.at(-1)?.role === "assistant"
+    ) {
+      messageGroups.push([message]);
+      return;
+    }
+
+    latestGroup.push(message);
+  });
+
+  return messageGroups.reverse().flat();
+};
+
 const ConversationPage = () => {
   const [chats, setChats] = useState<ConversationChat[]>([createInitialChat()]);
   const [activeChatId, setActiveChatId] = useState(INITIAL_CHAT_ID);
   const [pendingChatId, setPendingChatId] = useState<string | null>(null);
+  const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
@@ -191,6 +210,57 @@ const ConversationPage = () => {
 
   const activeChat =
     sortedChats.find((chat) => chat.id === activeChatId) ?? sortedChats[0];
+  const displayedMessages = activeChat
+    ? getDisplayedMessages(activeChat.messages)
+    : [];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateSession = async () => {
+      const { state } = await loadSessionScope(SESSION_SCOPE);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (state?.chats.length) {
+        setChats(state.chats);
+        setActiveChatId(state.activeChatId);
+      }
+
+      setHasLoadedFromSession(true);
+    };
+
+    void hydrateSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sortedChats.length) {
+      return;
+    }
+
+    const hasActiveChat = sortedChats.some((chat) => chat.id === activeChatId);
+
+    if (!hasActiveChat) {
+      setActiveChatId(sortedChats[0].id);
+    }
+  }, [activeChatId, sortedChats]);
+
+  useEffect(() => {
+    if (!hasLoadedFromSession) {
+      return;
+    }
+
+    void saveSessionScope(SESSION_SCOPE, {
+      chats,
+      activeChatId,
+    });
+  }, [activeChatId, chats, hasLoadedFromSession]);
 
   const updateChat = (
     chatId: string,
@@ -555,88 +625,91 @@ const ConversationPage = () => {
 
               {activeChat?.messages.length ? (
                 <div className="space-y-4">
-                  {activeChat.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "rounded-2xl border p-4",
-                        message.role === "user"
-                          ? "border-violet-200 bg-violet-50/70 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
-                          : "border-slate-200 bg-white dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0]",
-                      )}
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                          {message.role}
-                        </p>
-                        {message.role === "user" ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-violet-600 dark:hover:text-blue-200"
-                            onClick={() =>
-                              handleStartEditing(activeChat.id, message)
-                            }
-                            disabled={isLoading}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </Button>
-                        ) : null}
-                      </div>
-                      {editingState?.chatId === activeChat.id &&
-                      editingState.messageId === message.id ? (
-                        <div className="space-y-3">
-                          <textarea
-                            value={editingValue}
-                            onChange={(event) =>
-                              setEditingValue(event.target.value)
-                            }
-                            className={cn(
-                              "min-h-28 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
-                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
-                            )}
-                            disabled={isLoading}
-                          />
-                          <div className="flex flex-wrap items-center gap-2">
+                  {displayedMessages.map((message, index) => (
+                    <div key={message.id} className="space-y-4">
+                      <div
+                        className={cn(
+                          "rounded-2xl border p-4",
+                          message.role === "user"
+                            ? "border-violet-200 bg-violet-50/70 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
+                            : "border-slate-200 bg-white dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0]",
+                        )}
+                      >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            {message.role}
+                          </p>
+                          {message.role === "user" ? (
                             <Button
                               type="button"
+                              variant="ghost"
                               size="sm"
-                              onClick={() => handleSaveEdit(message.id)}
-                              disabled={isLoading || !editingValue.trim()}
-                            >
-                              <Check className="h-4 w-4" />
-                              Save And Regenerate
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={clearEditingState}
+                              className="text-muted-foreground hover:text-violet-600 dark:hover:text-blue-200"
+                              onClick={() =>
+                                handleStartEditing(activeChat.id, message)
+                              }
                               disabled={isLoading}
                             >
-                              <X className="h-4 w-4" />
-                              Cancel
+                              <Pencil className="h-4 w-4" />
+                              Edit
                             </Button>
+                          ) : null}
+                        </div>
+                        {editingState?.chatId === activeChat.id &&
+                        editingState.messageId === message.id ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editingValue}
+                              onChange={(event) =>
+                                setEditingValue(event.target.value)
+                              }
+                              className={cn(
+                                "min-h-28 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
+                                "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
+                              )}
+                              disabled={isLoading}
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleSaveEdit(message.id)}
+                                disabled={isLoading || !editingValue.trim()}
+                              >
+                                <Check className="h-4 w-4" />
+                                Save And Regenerate
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={clearEditingState}
+                                disabled={isLoading}
+                              >
+                                <X className="h-4 w-4" />
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-[#e2e8f0]">
+                            {message.content}
+                          </p>
+                        )}
+                      </div>
+
+                      {pendingChatId === activeChat.id &&
+                      index === 0 &&
+                      message.role === "user" ? (
+                        <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm text-violet-700 dark:border-border dark:bg-card dark:text-foreground">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Waiting for Qwen&apos;s response...
                           </div>
                         </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-[#e2e8f0]">
-                          {message.content}
-                        </p>
-                      )}
+                      ) : null}
                     </div>
                   ))}
-
-                  {pendingChatId === activeChat.id ? (
-                    <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm text-violet-700 dark:border-border dark:bg-card dark:text-foreground">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Waiting for Qwen&apos;s response...
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/30 px-6 py-12 text-center text-sm text-muted-foreground dark:border-border dark:bg-card/70">

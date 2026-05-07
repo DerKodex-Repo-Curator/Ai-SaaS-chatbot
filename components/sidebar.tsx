@@ -1,6 +1,5 @@
 "use client";
 
-import { SignOutButton } from "@clerk/nextjs";
 import { Montserrat } from "next/font/google";
 import {
   ChevronsLeft,
@@ -8,17 +7,19 @@ import {
   Code,
   ImageIcon,
   LayoutDashboard,
-  LogOut,
   MessageSquare,
   Music,
   Settings,
   Sparkles,
+  Users,
   VideoIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import BrandLogo from "@/components/brand-logo";
+import { SessionUserMenu } from "@/components/session-user-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,14 @@ const routes = [
     color: "text-orange-400",
   },
   {
+    label: "Admin Users",
+    description: "MongoDB Atlas registered users",
+    icon: Users,
+    href: "/users",
+    color: "text-cyan-300",
+    adminOnly: true,
+  },
+  {
     label: "Settings",
     description: "Workspace configuration",
     icon: Settings,
@@ -78,6 +87,10 @@ const routes = [
     color: "text-slate-300",
   },
 ];
+
+type MeResponse = {
+  isAdmin?: boolean;
+};
 
 type SidebarProps = {
   collapsed?: boolean;
@@ -94,6 +107,24 @@ const Sidebar = ({
 }: SidebarProps) => {
   const pathname = usePathname();
   const isDark = theme === "dark";
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const loadAdminStatus = async () => {
+      try {
+        const response = await fetch("/auth/me", {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as MeResponse;
+
+        setIsAdmin(data.isAdmin === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    loadAdminStatus();
+  }, []);
 
   return (
     <div
@@ -170,7 +201,9 @@ const Sidebar = ({
       ) : null}
 
       <div className="mt-6 flex-1 space-y-2">
-        {routes.map((route) => {
+        {routes
+          .filter((route) => !route.adminOnly || isAdmin)
+          .map((route) => {
           const isActive =
             pathname === route.href ||
             (route.href !== "/dashboard" && pathname.startsWith(route.href));
@@ -247,36 +280,7 @@ const Sidebar = ({
           </div>
         ) : null}
 
-        <SignOutButton redirectUrl="/">
-          <button
-            type="button"
-            className={cn(
-              "flex w-full items-center rounded-[22px] border px-3 py-3 text-sm font-medium transition",
-              collapsed && !mobile ? "justify-center" : "gap-3",
-              isDark
-                ? "border-[#334155] bg-[#1e293b] text-[#e2e8f0] hover:bg-[#334155] hover:text-white"
-                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white hover:text-slate-950"
-            )}
-          >
-            <div
-              className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
-                isDark
-                  ? "border-[#334155] bg-[#334155]"
-                  : "border-slate-200 bg-white"
-              )}
-            >
-              <LogOut className="h-5 w-5 text-rose-400" />
-            </div>
-
-            <div className={cn("text-left", collapsed && !mobile && "hidden")}>
-              <div className="font-semibold">Logout</div>
-              <p className={cn("mt-1 text-xs", isDark ? "text-[#94a3b8]" : "text-slate-500")}>
-                Sign out of your workspace
-              </p>
-            </div>
-          </button>
-        </SignOutButton>
+        <SessionUserMenu compact={collapsed && !mobile} theme={theme} />
       </div>
     </div>
   );

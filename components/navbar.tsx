@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import {
   Bell,
   MoonStar,
@@ -13,6 +12,7 @@ import { usePathname } from "next/navigation";
 
 import BrandLogo from "@/components/brand-logo";
 import MobileSidebar from "@/components/mobile-sidebar";
+import { SessionUserMenu } from "@/components/session-user-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -190,16 +190,7 @@ const Navbar = ({
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-cyan-400" />
               </Button>
 
-              <div
-                className={cn(
-                  "rounded-full border p-1.5",
-                  isDark
-                    ? "border-[#334155] bg-[#1e293b]"
-                    : "border-slate-200 bg-white/85"
-                )}
-              >
-                <UserButton />
-              </div>
+              <SessionUserMenu theme={theme} />
             </div>
           </div>
         </div>

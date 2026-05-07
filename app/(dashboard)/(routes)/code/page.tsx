@@ -28,6 +28,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { loadSessionScope, saveSessionScope } from "@/lib/session/client";
+import type {
+  SessionChat,
+  SessionChatMessage,
+  SessionScope,
+} from "@/lib/session/types";
 import { cn } from "@/lib/utils";
 
 import { formSchema } from "./constants";
@@ -37,25 +43,8 @@ type ConversationApiMessage = {
   content: string;
 };
 
-type CodeMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: number;
-};
-
-type CodeChat = {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  messages: CodeMessage[];
-};
-
-type StoredCodeChats = {
-  chats: CodeChat[];
-  activeChatId: string;
-};
+type CodeMessage = SessionChatMessage;
+type CodeChat = SessionChat;
 
 type EditingState = {
   chatId: string;
@@ -71,7 +60,7 @@ type MessageSegment =
       type: "code";
       content: string;
       language: string;
-    };
+};
 
 type MessageContentProps = {
   message: CodeMessage;
@@ -79,7 +68,7 @@ type MessageContentProps = {
   onCopy: (blockId: string, code: string) => Promise<void>;
 };
 
-const STORAGE_KEY = "genius-ai-code-chats";
+const SESSION_SCOPE: SessionScope = "code";
 const DEFAULT_CHAT_TITLE = "New code chat";
 const INITIAL_CHAT_ID = "code-chat-initial";
 
@@ -205,6 +194,29 @@ const getNextActiveChatId = (
   return [...remainingChats].sort(sortChatsByLatestActivity)[0]?.id ?? null;
 };
 
+const getDisplayedMessages = <T extends { role: "user" | "assistant" }>(
+  messages: T[],
+) => {
+  const messageGroups: T[][] = [];
+
+  messages.forEach((message) => {
+    const latestGroup = messageGroups.at(-1);
+
+    if (
+      message.role === "user" ||
+      !latestGroup ||
+      latestGroup.at(-1)?.role === "assistant"
+    ) {
+      messageGroups.push([message]);
+      return;
+    }
+
+    latestGroup.push(message);
+  });
+
+  return messageGroups.reverse().flat();
+};
+
 const parseMessageSegments = (content: string): MessageSegment[] => {
   const pattern = /```([\w-]+)?\n([\s\S]*?)```/g;
   const segments: MessageSegment[] = [];
@@ -256,67 +268,6 @@ const parseMessageSegments = (content: string): MessageSegment[] => {
   }
 
   return segments;
-};
-
-const isCodeMessage = (value: unknown): value is CodeMessage => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const { id, role, content, createdAt } = value as {
-    id?: unknown;
-    role?: unknown;
-    content?: unknown;
-    createdAt?: unknown;
-  };
-
-  return (
-    typeof id === "string" &&
-    (role === "user" || role === "assistant") &&
-    typeof content === "string" &&
-    typeof createdAt === "number"
-  );
-};
-
-const isCodeChatArray = (value: unknown): value is CodeChat[] => {
-  return (
-    Array.isArray(value) &&
-    value.every((chat) => {
-      if (!chat || typeof chat !== "object") {
-        return false;
-      }
-
-      const { id, title, createdAt, updatedAt, messages } = chat as {
-        id?: unknown;
-        title?: unknown;
-        createdAt?: unknown;
-        updatedAt?: unknown;
-        messages?: unknown;
-      };
-
-      return (
-        typeof id === "string" &&
-        typeof title === "string" &&
-        typeof createdAt === "number" &&
-        typeof updatedAt === "number" &&
-        Array.isArray(messages) &&
-        messages.every(isCodeMessage)
-      );
-    })
-  );
-};
-
-const isStoredCodeChats = (value: unknown): value is StoredCodeChats => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const { chats, activeChatId } = value as {
-    chats?: unknown;
-    activeChatId?: unknown;
-  };
-
-  return isCodeChatArray(chats) && typeof activeChatId === "string";
 };
 
 const MessageContent = ({
@@ -387,11 +338,11 @@ const CodePage = () => {
   const [activeChatId, setActiveChatId] = useState(INITIAL_CHAT_ID);
   const [pendingChatId, setPendingChatId] = useState<string | null>(null);
   const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
-  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+  const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -403,43 +354,40 @@ const CodePage = () => {
   const isLoading = form.formState.isSubmitting;
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    let isMounted = true;
 
-    try {
-      const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    const hydrateSession = async () => {
+      const { state } = await loadSessionScope(SESSION_SCOPE);
 
-      if (!storedValue) {
+      if (!isMounted) {
         return;
       }
 
-      const parsedValue = JSON.parse(storedValue) as unknown;
-
-      if (isStoredCodeChats(parsedValue) && parsedValue.chats.length > 0) {
-        setChats(parsedValue.chats);
-        setActiveChatId(parsedValue.activeChatId);
+      if (state?.chats.length) {
+        setChats(state.chats);
+        setActiveChatId(state.activeChatId);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setHasLoadedFromStorage(true);
-    }
+
+      setHasLoadedFromSession(true);
+    };
+
+    void hydrateSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedFromStorage || typeof window === "undefined") {
+    if (!hasLoadedFromSession) {
       return;
     }
 
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        chats,
-        activeChatId,
-      } satisfies StoredCodeChats),
-    );
-  }, [activeChatId, chats, hasLoadedFromStorage]);
+    void saveSessionScope(SESSION_SCOPE, {
+      chats,
+      activeChatId,
+    });
+  }, [activeChatId, chats, hasLoadedFromSession]);
 
   const sortedChats = useMemo(
     () => [...chats].sort(sortChatsByLatestActivity),
@@ -448,6 +396,9 @@ const CodePage = () => {
 
   const activeChat =
     sortedChats.find((chat) => chat.id === activeChatId) ?? sortedChats[0];
+  const displayedMessages = activeChat
+    ? getDisplayedMessages(activeChat.messages)
+    : [];
 
   useEffect(() => {
     if (!sortedChats.length) {
@@ -462,9 +413,9 @@ const CodePage = () => {
   }, [activeChatId, sortedChats]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
+    topRef.current?.scrollIntoView({
       behavior: "smooth",
-      block: "end",
+      block: "start",
     });
   }, [activeChat?.id, activeChat?.messages.length, pendingChatId]);
 
@@ -694,7 +645,7 @@ const CodePage = () => {
                   Code Chats
                 </CardTitle>
                 <CardDescription>
-                  Saved locally and automatically sorted by latest activity.
+                  Saved for this session and automatically sorted by latest activity.
                 </CardDescription>
               </div>
               <Button
@@ -790,12 +741,12 @@ const CodePage = () => {
                   {activeChat?.title ?? DEFAULT_CHAT_TITLE}
                 </CardTitle>
                 <CardDescription>
-                  Build, debug, refactor, and keep every coding thread saved on this device.
+                  Build, debug, refactor, and keep every coding thread available during this session.
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-border dark:bg-card dark:text-muted-foreground">
-                  Saved locally
+                  Session memory
                 </span>
                 {activeChat ? (
                   <Button
@@ -816,96 +767,101 @@ const CodePage = () => {
             <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 p-4 dark:border-border dark:bg-[linear-gradient(180deg,#0f172a_0%,#0f172a_60%,#1e293b_100%)] sm:p-5">
               {activeChat?.messages.length ? (
                 <div className="space-y-4">
-                  {activeChat.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "max-w-4xl rounded-2xl border p-4",
-                        message.role === "user"
-                          ? "ml-auto border-emerald-200 bg-emerald-50/80 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
-                          : "mr-auto border-slate-200 bg-white shadow-sm dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0] dark:shadow-none",
-                      )}
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                          {message.role === "user" ? "You" : "AI coder"}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
-                            {formatMessageTimestamp(message.createdAt)}
+                  <div ref={topRef} />
+
+                  {displayedMessages.map((message, index) => (
+                    <div key={message.id} className="space-y-4">
+                      <div
+                        className={cn(
+                          "max-w-4xl rounded-2xl border p-4",
+                          message.role === "user"
+                            ? "ml-auto border-emerald-200 bg-emerald-50/80 dark:border-[#2563eb] dark:bg-[#2563eb] dark:text-white"
+                            : "mr-auto border-slate-200 bg-white shadow-sm dark:border-border dark:bg-[#334155] dark:text-[#e2e8f0] dark:shadow-none",
+                        )}
+                      >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            {message.role === "user" ? "You" : "AI coder"}
                           </p>
-                          {message.role === "user" ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-emerald-600 dark:hover:text-blue-200"
-                              onClick={() =>
-                                handleStartEditing(activeChat.id, message)
-                              }
-                              disabled={isLoading}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                      {editingState?.chatId === activeChat.id &&
-                      editingState.messageId === message.id ? (
-                        <div className="space-y-3">
-                          <textarea
-                            value={editingValue}
-                            onChange={(event) =>
-                              setEditingValue(event.target.value)
-                            }
-                            className={cn(
-                              "min-h-32 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
-                              "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
-                            )}
-                            disabled={isLoading}
-                          />
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="bg-emerald-500 text-white hover:bg-emerald-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
-                              onClick={() => handleSaveEdit(message.id)}
-                              disabled={isLoading || !editingValue.trim()}
-                            >
-                              <Check className="h-4 w-4" />
-                              Save And Regenerate
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={clearEditingState}
-                              disabled={isLoading}
-                            >
-                              <X className="h-4 w-4" />
-                              Cancel
-                            </Button>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {formatMessageTimestamp(message.createdAt)}
+                            </p>
+                            {message.role === "user" ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-emerald-600 dark:hover:text-blue-200"
+                                onClick={() =>
+                                  handleStartEditing(activeChat.id, message)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
-                      ) : (
-                        <MessageContent
-                          message={message}
-                          copiedBlockId={copiedBlockId}
-                          onCopy={handleCopyCode}
-                        />
-                      )}
+                        {editingState?.chatId === activeChat.id &&
+                        editingState.messageId === message.id ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editingValue}
+                              onChange={(event) =>
+                                setEditingValue(event.target.value)
+                              }
+                              className={cn(
+                                "min-h-32 w-full rounded-xl border border-input bg-white px-4 py-3 text-sm shadow-xs outline-none transition-[color,box-shadow] dark:border-border dark:bg-secondary dark:text-foreground",
+                                "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:placeholder:text-muted-foreground",
+                              )}
+                              disabled={isLoading}
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="bg-emerald-500 text-white hover:bg-emerald-500/90 dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
+                                onClick={() => handleSaveEdit(message.id)}
+                                disabled={isLoading || !editingValue.trim()}
+                              >
+                                <Check className="h-4 w-4" />
+                                Save And Regenerate
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={clearEditingState}
+                                disabled={isLoading}
+                              >
+                                <X className="h-4 w-4" />
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <MessageContent
+                            message={message}
+                            copiedBlockId={copiedBlockId}
+                            onCopy={handleCopyCode}
+                          />
+                        )}
+                      </div>
+
+                      {pendingChatId === activeChat.id &&
+                      index === 0 &&
+                      message.role === "user" ? (
+                        <div className="mr-auto max-w-2xl rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-700 dark:border-border dark:bg-card dark:text-foreground">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating code response...
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   ))}
-
-                  {pendingChatId === activeChat.id ? (
-                    <div className="mr-auto max-w-2xl rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-4 text-sm text-emerald-700 dark:border-border dark:bg-card dark:text-foreground">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Generating code response...
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               ) : (
                 <div className="flex h-full min-h-[340px] flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/80 px-6 text-center dark:border-border dark:bg-card">
@@ -917,12 +873,12 @@ const CodePage = () => {
                   </p>
                   <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 dark:text-muted-foreground">
                     Ask for code generation, debugging help, refactors, explanations,
-                    architecture ideas, or full component builds. Older chats stay saved
-                    and the most recent activity automatically moves to the top.
+                    architecture ideas, or full component builds. Older chats stay
+                    available for this session and the most recent activity
+                    automatically moves to the top.
                   </p>
                 </div>
               )}
-              <div ref={bottomRef} />
             </div>
 
             <Form {...form}>
