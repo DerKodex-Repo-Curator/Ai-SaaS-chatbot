@@ -70,26 +70,26 @@ const tools: ToolCard[] = [
     iconColor: "text-pink-300",
     iconSurface: "bg-pink-500/12",
   },
-  {
-    title: "Music Generator",
-    description:
-      "Explore prompt-first music creation with faster ideation for moods, tracks, and audio concepts.",
-    icon: Music,
-    href: "/music",
-    accent: "from-amber-400/20 via-orange-500/10 to-transparent",
-    iconColor: "text-amber-200",
-    iconSurface: "bg-amber-500/12",
-  },
-  {
-    title: "Video Generator",
-    description:
-      "Create cinematic concepts, visual scenes, and motion-driven ideas from a single prompt.",
-    icon: VideoIcon,
-    href: "/video",
-    accent: "from-sky-500/20 via-indigo-500/10 to-transparent",
-    iconColor: "text-sky-300",
-    iconSurface: "bg-sky-500/12",
-  },
+  // {
+  //   title: "Music Generator",
+  //   description:
+  //     "Explore prompt-first music creation with faster ideation for moods, tracks, and audio concepts.",
+  //   icon: Music,
+  //   href: "/music",
+  //   accent: "from-amber-400/20 via-orange-500/10 to-transparent",
+  //   iconColor: "text-amber-200",
+  //   iconSurface: "bg-amber-500/12",
+  // },
+  // {
+  //   title: "Video Generator",
+  //   description:
+  //     "Create cinematic concepts, visual scenes, and motion-driven ideas from a single prompt.",
+  //   icon: VideoIcon,
+  //   href: "/video",
+  //   accent: "from-sky-500/20 via-indigo-500/10 to-transparent",
+  //   iconColor: "text-sky-300",
+  //   iconSurface: "bg-sky-500/12",
+  // },
 ];
 
 const stats: StatCard[] = [

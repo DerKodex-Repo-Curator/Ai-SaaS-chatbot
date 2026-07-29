@@ -59,3 +59,20 @@ temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local LLM/model files
+/llm/
+/llms/
+/models/weights/
+/models/checkpoints/
+/models/local/
+/checkpoints/
+/weights/
+*.gguf
+*.ggml
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.ckpt

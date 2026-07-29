@@ -22,24 +22,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Local Image Generation
+## Image Generation
 
-The image page calls a local Stable Diffusion WebUI-compatible API:
+The image page uses ComfyUI through the server route at `app/api/image/route.ts`.
 
 ```bash
-LOCAL_IMAGE_API_URL=http://127.0.0.1:7860
+COMFYUI_API_URL=http://127.0.0.1:8188
+COMFYUI_CHECKPOINT=v1-5-pruned-emaonly.1.safetensors
 ```
 
-Start Stable Diffusion WebUI with API mode enabled before generating images:
+Start ComfyUI before generating images:
 
 ```bash
-./webui.sh --api
-```
-
-On Windows, use:
-
-```bash
-webui-user.bat --api
+cd ~/Desktop/comfy/ComfyUI
+source venv/bin/activate
+python main.py --cpu --listen 127.0.0.1 --port 8188
 ```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

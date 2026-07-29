@@ -48,22 +48,22 @@ const features = [
     accent: "from-fuchsia-400/30 to-pink-500/10",
     iconColor: "text-fuchsia-300",
   },
-  {
-    title: "AI Music Generator",
-    description:
-      "Shape mood, tone, and sound with prompt-driven audio generation built for creators.",
-    icon: Music,
-    accent: "from-amber-300/30 to-orange-500/10",
-    iconColor: "text-amber-200",
-  },
-  {
-    title: "AI Video Generator",
-    description:
-      "Build cinematic motion concepts, video ideas, and media-ready outputs from natural language.",
-    icon: Video,
-    accent: "from-violet-400/30 to-indigo-500/10",
-    iconColor: "text-violet-200",
-  },
+  // {
+  //   title: "AI Music Generator",
+  //   description:
+  //     "Shape mood, tone, and sound with prompt-driven audio generation built for creators.",
+  //   icon: Music,
+  //   accent: "from-amber-300/30 to-orange-500/10",
+  //   iconColor: "text-amber-200",
+  // },
+  // {
+  //   title: "AI Video Generator",
+  //   description:
+  //     "Build cinematic motion concepts, video ideas, and media-ready outputs from natural language.",
+  //   icon: Video,
+  //   accent: "from-violet-400/30 to-indigo-500/10",
+  //   iconColor: "text-violet-200",
+  // },
 ];
 
 const steps = [
